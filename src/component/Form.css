@@ -1,0 +1,13 @@
+.container {
+  width: 50%;
+  height: 80%;
+  margin: 5%;
+  background-color: #f0efc8;
+  border-radius: 5px;
+  padding: 20px;
+  border: 1px solid #c4c3b8;
+}
+
+.form {
+  margin: 5%;
+}
