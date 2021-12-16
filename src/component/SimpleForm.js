@@ -1,42 +1,69 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { Form, Button, Row, Col } from "react-bootstrap";
 import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { ErrorMessage } from "@hookform/error-message";
+import Select from "react-select";
 import axios from "axios";
-import transformer from "../helper/transformer";
-import * as yup from "yup";
+import transformer, { validateContactNos } from "../helper/transformer";
+import { userSchema } from "../Validations/userValidation";
 import "./Form.css";
 
 const SimpleForm = () => {
   const apiLink = "https://xyz.in/api/user";
+  const [inputList, setInputList] = useState([
+    { countryCode: 0, phoneNumber: 0 },
+  ]);
+  const options = [
+    { value: "single", label: "Single" },
+    { value: "married", label: "Married" },
+    { value: "devorced", label: "devorced" },
+  ];
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    resolver: yupResolver(userSchema),
+  });
 
-  const onSubmit = (data) => {
-    // console.log("====================================");
-    // console.log(transformer(data));
-    // console.log("====================================");
-    axios.post(apiLink, transformer(data)).then((response) => this.setState());
+  const onSubmit = async (data) => {
+    data.phoneNumber = inputList;
+    let validPhoneNumber = validateContactNos(data.phoneNumber);
+    console.log(validPhoneNumber);
+    if (validPhoneNumber) {
+      const isValid = await userSchema.isValid(data);
+      const transformedData = transformer(data);
+      transformedData["contactDetails"] = data.phoneNumber;
+      if (isValid) {
+        console.log("POSTING DATA", transformedData);
+        axios.post(apiLink, transformedData).then((response) => data);
+      }
+    } else {
+      alert("Invalid Phone Number");
+    }
   };
 
-  const addPhoneNumber = () => {
-    console.log("====================================");
-    console.log("clicks");
-    console.log("====================================");
+  const handleInputChange = (e, index) => {
+    const { name, value } = e.target;
+    const list = [...inputList];
+    list[index][name] = value;
+    console.log("list: ", list);
+    // phoneNumberArr[index] = value;
+    setInputList(list);
   };
 
-  const schema = yup
-    .object({
-      firstName: yup.string().required(),
-      lastName: yup.string().required(),
-      email: yup.string().email().required(),
-      phoneNumber: yup.number().positive().integer().required(),
-      zip: yup.number().positive().integer().required(),
-    })
-    .required();
+  // handle click event of the Remove button
+  const handleRemoveClick = (index) => {
+    const list = [...inputList];
+    list.splice(index, 1);
+    setInputList(list);
+  };
+
+  // handle click event of the Add button
+  const handleAddClick = () => {
+    setInputList([...inputList, { countryCode: 0, phoneNumber: 0 }]);
+  };
 
   return (
     <div className="container">
@@ -83,16 +110,18 @@ const SimpleForm = () => {
           <Col>
             <Form.Control
               placeholder="First name"
-              {...register("firstName", { required: "Name required." })}
+              name="firstName"
+              {...register("firstName")}
             />
-            <ErrorMessage errors={errors} name="firstName" />
+            {errors.firstName?.message}
           </Col>
           <Col>
             <Form.Control
+              name="lastName"
               placeholder="Last name"
-              {...register("lastName", { required: "Name required." })}
+              {...register("lastName")}
             />
-            <ErrorMessage errors={errors} name="lastName" />
+            {errors.lastName?.message}
           </Col>
         </Row>
         <Row className="mb-3">
@@ -102,11 +131,11 @@ const SimpleForm = () => {
             </Form.Label>
             <Col sm={10}>
               <Form.Control
-                type="email"
+                name="email"
                 placeholder="Email"
-                {...register("email", { required: "Email required." })}
+                {...register("email")}
               />
-              <ErrorMessage errors={errors} name="email" />
+              {errors.email?.message}
             </Col>
           </Form.Group>
         </Row>
@@ -115,33 +144,40 @@ const SimpleForm = () => {
           <Form.Label>Address</Form.Label>
           <Form.Control
             placeholder="1234 Main St"
-            {...register("addr1", { required: "Address required." })}
+            name="addr1"
+            {...register("addr1")}
           />
-          <ErrorMessage errors={errors} name="addr1" />
+          {errors.addr1?.message}
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="formGridAddress2">
           <Form.Label>Address 2</Form.Label>
           <Form.Control
             placeholder="Apartment, studio, or floor"
+            name="addr2"
             {...register("addr2")}
           />
+          {errors.addr2?.message}
         </Form.Group>
 
         <Row className="mb-3">
           <Form.Group as={Col} controlId="formGridCity">
             <Form.Label>City</Form.Label>
             <Form.Control
-              {...register("city", { required: "State required." })}
+              placeholder="City"
+              name="city"
+              {...register("city")}
             />
-            <ErrorMessage errors={errors} name="city" />
+            {errors.city?.message}
           </Form.Group>
 
           <Form.Group as={Col} controlId="formGridState">
             <Form.Label>State</Form.Label>
             <Form.Select
+              className="me-sm-2"
+              name="state"
               defaultValue="Choose..."
-              {...register("state", { required: "State required." })}
+              {...register("state")}
             >
               <option>Choose...</option>
               <option>J&k</option>
@@ -150,18 +186,13 @@ const SimpleForm = () => {
               <option>MP</option>
               <option>AP</option>
             </Form.Select>
-            <ErrorMessage errors={errors} name="state" />
+            {errors.state?.message}
           </Form.Group>
 
           <Form.Group as={Col} controlId="formGridZip">
             <Form.Label>Zip</Form.Label>
-            <Form.Control
-              {...register("zip", {
-                required: "Valid ZIP code is required.",
-                minLength: 6,
-              })}
-            />
-            <ErrorMessage errors={errors} name="zip" />
+            <Form.Control placeholder="Zip" name="zip" {...register("zip")} />
+            {errors.zip?.message}
           </Form.Group>
         </Row>
 
@@ -172,50 +203,56 @@ const SimpleForm = () => {
             {...register("currentAddress")}
           />
         </Form.Group>
-        <Form.Label
-          className="me-sm-2"
-          htmlFor="inlineFormCustomSelect"
-          visuallyHidden
-        >
-          Preference
-        </Form.Label>
-        <Form.Select
-          className="me-sm-2"
-          id="inlineFormCustomSelect"
-          {...register("gender", { required: "Gender required." })}
-        >
-          <option value="0">Gender</option>
-          <option value="1">Male</option>
-          <option value="2">Female</option>
-          <option value="3">Others</option>
-        </Form.Select>
-        <ErrorMessage errors={errors} name="gender" />
+        <Form.Group className="mb-3" id="formGridCheckbox">
+          <Form.Label>Gender</Form.Label>
+          <Form.Check type="radio" label="Male" {...register("gender")} />
+          <Form.Check type="radio" label="Female" {...register("gender")} />
+          <Form.Check type="radio" label="Others" {...register("gender")} />
+        </Form.Group>
+
         <br />
-        <Row className="mb-3">
-          <Col>
-            <Form.Control placeholder="Prefix" {...register("countryCode")} />
-          </Col>
-          <Col>
-            <Form.Control
-              placeholder="Phone Number"
-              {...register("phoneNumber", {
-                required: "Enter a valid Phone Number.",
-                minLength: 10,
-              })}
-            />
-            <ErrorMessage errors={errors} name="phoneNumber" />
-          </Col>
-          <Col>
-            <Button variant="primary" type="submit" onClick={addPhoneNumber}>
-              + Add
-            </Button>
-          </Col>
-        </Row>
-
-        {/* <Button variant="primary" type="submit">
-          Submit
-        </Button> */}
-
+        {inputList.map((x, i) => {
+          return (
+            <Row key={i} className="mb-3">
+              <Col>
+                <Form.Control
+                  placeholder="Prefix"
+                  // {...register("countryCode")}
+                  onChange={(e) => handleInputChange(e, i)}
+                  value={x.countryCode}
+                />
+                {errors.countryCode?.message}
+              </Col>
+              <Col>
+                <Form.Control
+                  placeholder="Phone Number"
+                  name="phoneNumber"
+                  // {...register("phoneNumber")}
+                  onChange={(e) => handleInputChange(e, i)}
+                  value={x.phoneNumber}
+                />
+                {errors.phoneNumber?.message}
+              </Col>
+              <Col className="btn-box">
+                {inputList.length !== 1 && (
+                  <Button onClick={() => handleRemoveClick(i)} className="mr10">
+                    -
+                  </Button>
+                )}
+                {inputList.length - 1 === i && (
+                  <Button onClick={() => handleAddClick(i)} className="ms-2">
+                    {" "}
+                    +{" "}
+                  </Button>
+                )}
+              </Col>
+            </Row>
+          );
+        })}
+        <Form.Group className="mb-3" id="formGridCheckbox">
+          <Form.Label>Material Status</Form.Label>
+          <Select options={options} name="status" {...register} />
+        </Form.Group>
         <Button variant="primary" type="submit">
           Submit
         </Button>

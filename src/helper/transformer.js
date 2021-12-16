@@ -1,6 +1,5 @@
 let validData = {};
 let address = {};
-let contactNos = [];
 
 const transformer = (data) => {
   address["pincode"] = data.zip;
@@ -12,10 +11,19 @@ const transformer = (data) => {
   validData["firstName"] = data.firstName;
   validData["lastName"] = data.lastName;
   validData["email"] = data.email;
-  contactNos.push(data.phoneNumber);
-  validData["contactNos"] = contactNos;
 
   return validData;
+};
+
+export const validateContactNos = (contactNos) => {
+  let isValid = true;
+  contactNos.forEach((contactNo) => {
+    console.log(contactNo.phoneNumber.length);
+    if (contactNo.phoneNumber.length !== 10) {
+      isValid = false;
+    }
+  });
+  return isValid;
 };
 
 export default transformer;
