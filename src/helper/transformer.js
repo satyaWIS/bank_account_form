@@ -11,6 +11,7 @@ const transformer = (data) => {
   validData["firstName"] = data.firstName;
   validData["lastName"] = data.lastName;
   validData["email"] = data.email;
+  validData["accountType"] = data.accountType;
 
   return validData;
 };

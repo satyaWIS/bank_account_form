@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Form, Button, Row, Col } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Form, Button, Row, Col, Container } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ErrorMessage } from "@hookform/error-message";
@@ -10,10 +10,39 @@ import { userSchema } from "../Validations/userValidation";
 import "./Form.css";
 
 const SimpleForm = () => {
-  const apiLink = "https://xyz.in/api/user";
-  const [inputList, setInputList] = useState([
+  const apiLink = "/api/submituser";
+  const getApiLink = "/api/userdetails";
+  const [contactList, setContactList] = useState([
     { countryCode: 0, phoneNumber: 0 },
   ]);
+  const [user, setUser] = useState(null);
+  const [getUser, setGetUser] = useState(null);
+
+  // effect runs on component mount
+  useEffect(() => {
+    // simulate async api call with set timeout
+    setTimeout(
+      () =>
+        setUser({
+          firstName: "Alex",
+          lastName: "Lee",
+          email: "eyz@example.com",
+          addr1: "123, Park Avenue Road",
+          addr2: "Bay Area, LA",
+          city: "Bay Area",
+          zip: "1234567",
+          phoneNumber: "1234567890",
+        }),
+      1000
+    );
+  }, []);
+
+  // effect runs when user state is updated
+  useEffect(() => {
+    // reset form with user data
+    reset(user);
+  }, [user]);
+
   const options = [
     { value: "single", label: "Single" },
     { value: "married", label: "Married" },
@@ -22,23 +51,25 @@ const SimpleForm = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(userSchema),
   });
 
   const onSubmit = async (data) => {
-    data.phoneNumber = inputList;
+    data.phoneNumber = contactList;
     let validPhoneNumber = validateContactNos(data.phoneNumber);
-    console.log(validPhoneNumber);
+
     if (validPhoneNumber) {
-      const isValid = await userSchema.isValid(data);
       const transformedData = transformer(data);
       transformedData["contactDetails"] = data.phoneNumber;
-      if (isValid) {
-        console.log("POSTING DATA", transformedData);
-        axios.post(apiLink, transformedData).then((response) => data);
-      }
+      console.log("POSTING DATA", transformedData);
+      axios
+        .post(apiLink, {
+          fulldata: transformedData,
+        })
+        .then((response) => setGetUser(response.data));
     } else {
       alert("Invalid Phone Number");
     }
@@ -46,23 +77,29 @@ const SimpleForm = () => {
 
   const handleInputChange = (e, index) => {
     const { name, value } = e.target;
-    const list = [...inputList];
+    const list = [...contactList];
     list[index][name] = value;
-    console.log("list: ", list);
-    // phoneNumberArr[index] = value;
-    setInputList(list);
+    setContactList(list);
   };
 
   // handle click event of the Remove button
   const handleRemoveClick = (index) => {
-    const list = [...inputList];
+    const list = [...contactList];
     list.splice(index, 1);
-    setInputList(list);
+    setContactList(list);
   };
 
   // handle click event of the Add button
   const handleAddClick = () => {
-    setInputList([...inputList, { countryCode: 0, phoneNumber: 0 }]);
+    setContactList([...contactList, { countryCode: 0, phoneNumber: 0 }]);
+  };
+
+  const getData = () => {
+    axios.get(getApiLink).then((response) => {
+      console.log("Before", response.data);
+      setGetUser(response.data);
+      console.log("After", getUser);
+    });
   };
 
   return (
@@ -76,11 +113,13 @@ const SimpleForm = () => {
         <Form.Select
           aria-label="Default select example"
           className="mb-3"
-          {...register("account", { required: "This is required." })}
+          defaultValue="Select Account Type"
+          name="accountType"
+          // control={...register("accountType")}
+          {...register("accountType", { required: "This is required." })}
         >
-          <option>Select Account Type</option>
-          <option value="1">Savings Account</option>
-          <option value="2">Current Account</option>
+          <option value="Savings Account">Savings Account</option>
+          <option value="Current Account">Current Account</option>
         </Form.Select>
         <ErrorMessage errors={errors} name="account" />
         <br />
@@ -101,9 +140,9 @@ const SimpleForm = () => {
               {...register("prefix", { required: "This is required." })}
             >
               <option value="0">prefix</option>
-              <option value="1">Mr.</option>
-              <option value="2">MRs.</option>
-              <option value="3">Miss.</option>
+              <option value="Mr">Mr</option>
+              <option value="Mrs">MRs</option>
+              <option value="Miss">Miss</option>
             </Form.Select>
             <ErrorMessage errors={errors} name="prefix" />
           </Col>
@@ -176,15 +215,14 @@ const SimpleForm = () => {
             <Form.Select
               className="me-sm-2"
               name="state"
-              defaultValue="Choose..."
               {...register("state")}
             >
               <option>Choose...</option>
-              <option>J&k</option>
-              <option>WB</option>
-              <option>TN</option>
-              <option>MP</option>
-              <option>AP</option>
+              <option value="Jammu and kashmir">J&k</option>
+              <option value="West Bengal">WB</option>
+              <option value="Tamil Nadu">TN</option>
+              <option value="Madhya Pradesh">MP</option>
+              <option value="Andra Pradesh">AP</option>
             </Form.Select>
             {errors.state?.message}
           </Form.Group>
@@ -200,23 +238,44 @@ const SimpleForm = () => {
           <Form.Check
             type="checkbox"
             label="Current address is same as permanent address"
-            {...register("currentAddress")}
+            name="sameAddr"
+            value="true"
+            {...register("sameAddr")}
           />
         </Form.Group>
         <Form.Group className="mb-3" id="formGridCheckbox">
           <Form.Label>Gender</Form.Label>
-          <Form.Check type="radio" label="Male" {...register("gender")} />
-          <Form.Check type="radio" label="Female" {...register("gender")} />
-          <Form.Check type="radio" label="Others" {...register("gender")} />
+          <Form.Check
+            type="radio"
+            label="Male"
+            name="gender"
+            value="male"
+            {...register("gender")}
+          />
+          <Form.Check
+            type="radio"
+            label="Female"
+            name="gender"
+            value="female"
+            {...register("gender")}
+          />
+          <Form.Check
+            type="radio"
+            label="Others"
+            name="gender"
+            value="others"
+            {...register("gender")}
+          />
         </Form.Group>
 
         <br />
-        {inputList.map((x, i) => {
+        {contactList.map((x, i) => {
           return (
             <Row key={i} className="mb-3">
               <Col>
                 <Form.Control
-                  placeholder="Prefix"
+                  placeholder="Country Code"
+                  name="countryCode"
                   // {...register("countryCode")}
                   onChange={(e) => handleInputChange(e, i)}
                   value={x.countryCode}
@@ -234,12 +293,12 @@ const SimpleForm = () => {
                 {errors.phoneNumber?.message}
               </Col>
               <Col className="btn-box">
-                {inputList.length !== 1 && (
+                {contactList.length !== 1 && (
                   <Button onClick={() => handleRemoveClick(i)} className="mr10">
                     -
                   </Button>
                 )}
-                {inputList.length - 1 === i && (
+                {contactList.length - 1 === i && (
                   <Button onClick={() => handleAddClick(i)} className="ms-2">
                     {" "}
                     +{" "}
@@ -251,12 +310,40 @@ const SimpleForm = () => {
         })}
         <Form.Group className="mb-3" id="formGridCheckbox">
           <Form.Label>Material Status</Form.Label>
-          <Select options={options} name="status" {...register} />
+          <Select options={options} name="status" {...register("status")} />
         </Form.Group>
-        <Button variant="primary" type="submit">
-          Submit
-        </Button>
+        <Form.Group className="mb-3" id="formGridCheckbox">
+          <Button variant="primary" type="submit">
+            Submit
+          </Button>
+          <Button
+            type="button"
+            onClick={() => reset()}
+            className="btn btn-secondary"
+          >
+            Reset
+          </Button>
+        </Form.Group>
       </Form>
+      <Button onClick={() => getData()}>Get Data</Button>
+      <Container className="text-center">
+        {getUser && (
+          <>
+            <p>Name : {`${getUser.firstName} ${getUser.lastName}`}</p>
+            <p>Email : {`${getUser.email}`}</p>
+            <p>
+              Address :{" "}
+              {`${getUser.address.addr1} ${getUser.address?.addr2} ${getUser.address.city} ${getUser.address.countryState} ${getUser.address.zip}`}
+            </p>
+            <p>
+              Phone :{" "}
+              {getUser.contactDetails.map((x, i) => {
+                return `${x.countryCode} ${x.phoneNumber}`;
+              })}
+            </p>
+          </>
+        )}
+      </Container>
     </div>
   );
 };

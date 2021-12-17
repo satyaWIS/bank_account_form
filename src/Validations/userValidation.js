@@ -14,4 +14,6 @@ export const userSchema = yup.object().shape({
     .integer()
     .min(6, "Enter a Valid Zip Code!!")
     .required("Required!!!"),
+  accountType: yup.string().required("Required!!!"),
+  gender: yup.string().required(),
 });
