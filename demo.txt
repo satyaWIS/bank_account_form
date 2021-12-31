@@ -1,0 +1,37 @@
+    1  git clone https://arsheena@bitbucket.org/kaysons/edumple-python.git
+    2  cd edumple-python/
+    3  git fetch && git checkout dev 
+    4  cd edumple
+    5  git fetch && git checkout dev
+    6  git clone git@bitbucket.org:1518-studios/crm-frontend.git
+    7  ls
+    8  cd crm-frontend/
+    9  ls
+   10  git -version
+   11  git --version
+   12  git config user.name
+   13  git config user.email
+   14  cd d:/
+   15  ls
+   16  cd bank_account_form/
+   17  git dtatus
+   18  git status
+   19  git log
+   20  git branch
+   21  git branch dev1
+   22  git branch dev2
+   23  git branch
+   24  git checkout dev1
+   25  code
+   26  git status
+   27  git commit -a -m "updated app.js"
+   28  git --help
+   29  git remote
+   30  git remote --help
+   31  pwd
+   32  ps -ef 
+   33  ps -ef | grep node
+   34  ps -ef | grep python
+   35  cat README.md 
+   36  history
+   37  history > demo.txt
